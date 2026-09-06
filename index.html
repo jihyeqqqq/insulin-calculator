@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f5e57">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Insulin Calculator">
+<title>GIK·MDI 인슐린 계산기</title>
+<style>
+:root {
+  --ink: #1c2b2d;
+  --sub: #5a6b6d;
+  --faint: #8fa0a2;
+  --line: #d8e0e0;
+  --paper: #f6f8f7;
+  --card: #ffffff;
+  --deep: #0f5e57;
+  --deep-bg: #e3f0ee;
+  --red: #b03434;
+  --red-bg: #fbeaea;
+  --radius: 10px;
+}
+* { box-sizing: border-box; margin: 0; }
+body {
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", -apple-system, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 14px 40px;
+}
+.wrap { max-width: 480px; margin: 0 auto; }
+header { margin-bottom: 18px; }
+h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; }
+h1 span { color: var(--deep); }
+header p { font-size: 13px; color: var(--sub); margin-top: 2px; }
+.tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+.tabs button {
+  flex: 1; padding: 10px 4px; font-size: 14px; font-weight: 600;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--card); color: var(--sub); cursor: pointer;
+}
+.tabs button.on { background: var(--deep); border-color: var(--deep); color: #fff; }
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 14px;
+}
+.card h2 { font-size: 14px; font-weight: 700; color: var(--deep); margin-bottom: 4px; }
+.card .hint { font-size: 12px; color: var(--faint); margin-bottom: 12px; }
+label { font-size: 13px; color: var(--sub); display: block; margin-bottom: 4px; }
+input, select {
+  width: 100%; height: 38px; padding: 0 10px; font-size: 14px;
+  border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink);
+  font-family: inherit;
+}
+input:focus, select:focus { outline: 2px solid var(--deep); outline-offset: -1px; }
+button.act {
+  width: 100%; height: 38px; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--deep); border-radius: 8px;
+  background: #fff; color: var(--deep); cursor: pointer; font-family: inherit;
+}
+button.act:active { background: var(--deep-bg); }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.mt { margin-top: 12px; }
+.slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.slider-row label { margin: 0; min-width: 64px; }
+.slider-row input[type=range] { flex: 1; height: auto; padding: 0; accent-color: var(--deep); }
+.slider-row output { font-size: 14px; font-weight: 600; min-width: 52px; text-align: right; }
+.grid-head, .slot {
+  display: grid;
+  grid-template-columns: 38px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 52px 24px 16px;
+  gap: 4px; align-items: center;
+}
+.slot .tIn { height: 34px; font-size: 11px; padding: 0 3px; }
+.slot .del, .slot-add .del {
+  border: none; background: none; color: var(--faint); font-size: 16px;
+  line-height: 1; cursor: pointer; padding: 0; font-family: inherit;
+}
+.slot .del:active, .slot-add .del:active { color: var(--red); }
+.slot-add { padding: 7px 2px; border-bottom: 1px solid #edf1f0; border-radius: 6px; }
+.slot-add .meta { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.slot-add .meta .tIn { width: 96px; height: 30px; font-size: 12px; padding: 0 6px; }
+.slot-add .meta .durIn { width: 84px; height: 30px; font-size: 12px; padding: 0 4px; }
+.slot-add .meta .del { margin-left: auto; padding: 0 4px; }
+.slot.sub {
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 52px 24px;
+  border-bottom: none; padding: 0; background: transparent !important;
+}
+.slot-add.hypo { background: var(--red-bg); }
+.slot-add.held { background: var(--paper); }
+.slot-add input.low { color: var(--red); font-weight: 600; }
+.grid-head { padding: 0 2px 6px; border-bottom: 1px solid var(--line); }
+.grid-head span { font-size: 11px; color: var(--faint); }
+.slot { padding: 5px 2px; border-bottom: 1px solid #edf1f0; border-radius: 6px; }
+.slot:last-child { border-bottom: none; }
+.slot .t { font-size: 12px; color: var(--sub); }
+.slot input, .slot select { height: 34px; font-size: 13px; padding: 0 5px; }
+.slot input[type=checkbox] { width: 18px; height: 18px; justify-self: center; accent-color: var(--red); }
+.slot.hypo { background: var(--red-bg); }
+.slot.held { background: var(--paper); }
+.slot input.low { color: var(--red); font-weight: 600; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+.stat.hi { background: var(--deep-bg); border-color: var(--deep-bg); }
+.stat p { font-size: 12px; color: var(--sub); }
+.stat.hi p { color: var(--deep); }
+.stat strong { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; }
+.stat.hi strong { color: var(--deep); }
+.warn {
+  display: none; font-size: 13px; color: var(--red); background: var(--red-bg);
+  border-radius: 8px; padding: 10px 12px; margin: -4px 0 14px;
+}
+.result { background: var(--deep-bg); border-radius: 8px; padding: 12px 14px; }
+.result p { font-size: 13px; color: var(--deep); }
+.result strong { font-size: 22px; font-weight: 700; color: var(--deep); }
+.result .f { font-size: 12px; color: var(--deep); opacity: 0.85; }
+.mini { background: var(--paper); border-radius: 8px; padding: 10px 12px; }
+.mini p { font-size: 12px; color: var(--sub); }
+.mini strong { font-size: 18px; font-weight: 700; }
+.mini .n { font-size: 11px; color: var(--faint); }
+.tdd-line { display: flex; align-items: baseline; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.tdd-line span { font-size: 13px; color: var(--sub); }
+.tdd-line strong { font-size: 20px; font-weight: 700; }
+.tdd-line em { font-size: 12px; color: var(--faint); font-style: normal; }
+footer {
+  margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--line);
+  font-size: 12px; color: var(--sub);
+}
+footer .src { font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+#tab2, #tab3 { display: none; }
+table.carb { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.carb th, table.carb td { padding: 5px 6px; text-align: right; border-bottom: 1px solid #edf1f0; }
+table.carb th { color: var(--sub); font-weight: 600; font-size: 12px; border-bottom: 1px solid var(--line); }
+table.carb th:first-child, table.carb td:first-child { text-align: left; font-weight: 600; }
+table.carb tr:last-child td { border-bottom: none; }
+table.carb tr.mark td { background: var(--deep-bg); color: var(--deep); }
+@media (max-width: 520px) {
+  input, select { font-size: 16px; height: 42px; }
+  .slot input, .slot select, .slot-add .meta .tIn, .slot-add .meta .durIn {
+    font-size: 16px; height: 38px; padding: 0 3px;
+  }
+  .slot input[type=checkbox] { width: 22px; height: 22px; }
+  .tabs button { padding: 12px 4px; }
+  button.act { height: 42px; }
+}
+@media print {
+  body { background: #fff; padding: 0; }
+  .tabs, button.act { display: none; }
+  #tab1, #tab2, #tab3 { display: block !important; }
+}
+</style>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>GIK·MDI <span>인슐린 계산기</span></h1>
+  <p>2시간 간격 f/u 기준 · 임상 참고용</p>
+</header>
+
+<div class="tabs">
+  <button id="tb1" class="on" onclick="showTab(1)">GIK·MDI 전환</button>
+  <button id="tb2" onclick="showTab(2)">용량 조정</button>
+  <button id="tb3" onclick="showTab(3)">펌프 설정</button>
+</div>
+
+<div id="tab1">
+
+<div class="card">
+  <h2>GIK 수액 설정</h2>
+  <div class="g2">
+    <div>
+      <label for="vol">수액 용량</label>
+      <select id="vol">
+        <option value="500">500 ml</option>
+        <option value="1000" selected>1000 ml (1L)</option>
+      </select>
+    </div>
+    <div style="align-self:end;">
+      <button class="act" id="copyDown" type="button">1행 값 전체 복사</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>구간별 기록 (2시간 × 12)</h2>
+  <p class="hint">BST 70 미만 입력 시 저혈당 자동 체크 · 홀드는 해당 구간 중 잠근 시간 · 추가 행은 구간 길이(1·2시간) 선택 가능</p>
+  <div class="grid-head">
+    <span>시간</span><span>BST</span><span>RI/병</span><span>cc/hr</span><span>홀드</span><span>저혈</span><span></span>
+  </div>
+  <div id="rows"></div>
+  <button class="act" id="addRow" type="button" style="margin-top:10px;">+ 구간 행 추가</button>
+</div>
+
+<div class="stats">
+  <div class="stat hi"><p>IV RI 24시간 총량</p><strong id="ivTotal">0 U</strong></div>
+  <div class="stat"><p>평균 혈당</p><strong id="avgBst">–</strong></div>
+  <div class="stat"><p>홀드 누적</p><strong id="holdSum">0분</strong></div>
+  <div class="stat"><p>저혈당 횟수</p><strong id="hypoCnt">0회</strong></div>
+</div>
+<p class="warn" id="hypoWarn">저혈당 구간이 있습니다. MDI 전환 비율을 보수적으로(60~70%) 잡는 것을 고려하세요.</p>
+
+<div class="card">
+  <h2>MDI 병용 SC 인슐린</h2>
+  <p class="hint">GIK 중 실제 투여한 피하 인슐린 (해당 시에만 입력)</p>
+  <div class="g2">
+    <div><label for="scBasal">Basal (U/일)</label><input type="number" id="scBasal" min="0" step="1" value="0"></div>
+    <div><label for="scBolus">Bolus 합계 (U/일)</label><input type="number" id="scBolus" min="0" step="1" value="0"></div>
+  </div>
+  <div class="tdd-line"><span>합산 TDD (IV+SC)</span><strong id="combTdd">0 U</strong></div>
+</div>
+
+<div class="card">
+  <h2>MDI 전환 제안</h2>
+  <p class="hint">IV분에만 전환 비율 적용, 기존 SC분은 유지</p>
+  <div class="slider-row">
+    <label for="conv">전환 비율</label>
+    <input type="range" id="conv" min="60" max="100" step="5" value="80">
+    <output id="convOut">80%</output>
+  </div>
+  <div class="slider-row">
+    <label for="ratio">Basal 비중</label>
+    <input type="range" id="ratio" min="30" max="70" step="5" value="50">
+    <output id="ratioOut">50:50</output>
+  </div>
+  <div class="tdd-line"><span>전환 후 TDD</span><strong id="newTdd">0 U</strong><em id="tddFormula"></em></div>
+  <div class="g2 mt">
+    <div class="mini"><p id="basalLbl">Basal 50%</p><strong id="basal">0 U</strong><p class="n">지속형 1회</p></div>
+    <div class="mini"><p id="bolusLbl">Bolus 50%</p><strong id="bolus">0 U</strong><p class="n" id="perMeal">매 식전 0 U</p></div>
+  </div>
+</div>
+
+</div>
+
+<div id="tab2">
+
+<div class="card">
+  <h2>1단계 · TDD로 계수 산출</h2>
+  <p class="hint">교정계수 ISF = 1800(초속효성)/1500(RI) ÷ TDD · 탄수계수 ICR = 500 ÷ TDD</p>
+  <div class="g2">
+    <div><label for="tdd">TDD (U/일)</label><input type="number" id="tdd" min="1" step="1" value="45"></div>
+    <div>
+      <label for="rule">인슐린 종류</label>
+      <select id="rule">
+        <option value="1800" selected>초속효성 (1800)</option>
+        <option value="1500">RI (1500)</option>
+      </select>
+    </div>
+  </div>
+  <div class="g2 mt">
+    <div class="mini"><p>교정계수 ISF</p><strong id="isfOut">40</strong><p class="n" id="isfNote">1U → 혈당 40↓</p></div>
+    <div class="mini"><p>탄수계수 ICR</p><strong id="icrOut">11</strong><p class="n" id="icrNote">1U → 탄수 11g</p></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>2단계 · 교정용량</h2>
+  <p class="hint">(현재혈당 − 목표혈당) ÷ ISF · 예: (혈당−120)÷40</p>
+  <div class="g2">
+    <div><label for="bg">현재 혈당</label><input type="number" id="bg" min="0" step="1" value="280"></div>
+    <div><label for="target">목표 혈당</label><input type="number" id="target" min="70" step="10" value="120"></div>
+  </div>
+  <div class="g2 mt">
+    <div><label for="isfIn">ISF (수정 가능)</label><input type="number" id="isfIn" min="1" step="1" value="40"></div>
+    <div style="align-self:end;"><button class="act" id="syncIsf" type="button">1단계 값 사용</button></div>
+  </div>
+  <div class="result mt">
+    <p>교정용량</p>
+    <strong id="corrOut">4 U</strong>
+    <p class="f" id="corrFormula">(280 − 120) ÷ 40 = 4.0</p>
+  </div>
+  <p class="warn" id="lowWarn" style="margin:10px 0 0;">현재 혈당이 목표 이하입니다. 교정 불필요, 저혈당 여부를 확인하세요.</p>
+</div>
+
+<div class="card">
+  <h2>3단계 · 식전 총량</h2>
+  <p class="hint">탄수화물 ÷ ICR + 교정용량 (0.5U 단위 반올림)</p>
+  <div class="g2">
+    <div><label for="carb">탄수화물 (g)</label><input type="number" id="carb" min="0" step="5" value="60"></div>
+    <div><label for="icrIn">ICR (수정 가능)</label><input type="number" id="icrIn" min="1" step="1" value="11"></div>
+  </div>
+  <div class="g2 mt">
+    <div class="mini"><p>식사용량</p><strong id="mealOut">5.5 U</strong></div>
+    <div class="mini" style="background:var(--deep-bg);"><p style="color:var(--deep);">식전 총량</p><strong id="totalOut" style="color:var(--deep);">9.5 U</strong></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Titration 참고</h2>
+  <p class="hint" style="margin-bottom:0;">
+    Basal: 공복혈당 3일 연속 목표 초과 시 2U 또는 10% 증량, 야간 저혈당 시 10~20% 감량 ·
+    Bolus: 해당 식후 2시간/다음 식전 혈당으로 평가, 해당 식전 용량만 1~2U 조정 ·
+    저혈당 발생 시 원인 시간대 인슐린만 10~20% 감량
+  </p>
+</div>
+
+</div>
+
+<div id="tab3">
+
+<div class="card">
+  <h2>1단계 · 처방 열량 산출</h2>
+  <p class="hint">표준체중 = 키(m)² × 22(남) / 21(여) · 필요열량 = 표준체중 × 활동계수</p>
+  <div class="g3">
+    <div><label for="pHt">키 (cm)</label><input type="number" id="pHt" min="100" step="1" value="165"></div>
+    <div>
+      <label for="pSex">성별</label>
+      <select id="pSex">
+        <option value="22" selected>남 (×22)</option>
+        <option value="21">여 (×21)</option>
+      </select>
+    </div>
+    <div>
+      <label for="pAct">활동계수</label>
+      <select id="pAct">
+        <option value="25">25</option>
+        <option value="30" selected>30</option>
+        <option value="35">35</option>
+      </select>
+    </div>
+  </div>
+  <div class="g2 mt">
+    <div class="mini"><p>표준체중</p><strong id="pIbw">59.9 kg</strong></div>
+    <div class="result" style="padding:10px 12px;"><p>필요열량</p><strong id="pKcalCalc">1,797 kcal</strong><p class="f" id="pKcalF"></p></div>
+  </div>
+  <button class="act" id="applyKcal" type="button" style="margin-top:10px;">가까운 처방 열량에 적용 (100kcal 단위)</button>
+</div>
+
+<div class="card">
+  <h2>2단계 · 펌프 TDD 산출</h2>
+  <p class="hint">(일주일 평균 인슐린 사용량 × 0.75 + 체중 × 0.5) × 0.5</p>
+  <div class="g2">
+    <div><label for="pAvg">주간 평균 사용량 (U/일)</label><input type="number" id="pAvg" min="0" step="1" value="50"></div>
+    <div><label for="pWt">체중 (kg)</label><input type="number" id="pWt" min="1" step="0.5" value="65"></div>
+  </div>
+  <div class="result mt">
+    <p>펌프 TDD</p>
+    <strong id="pTdd">35 U</strong>
+    <p class="f" id="pTddF">(50×0.75 + 65×0.5) × 0.5 = 35.0</p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>임신 시 참고 · 주수별 TDD</h2>
+  <p class="hint">체중 × 주수별 계수 (1분기 0.7 · 2분기 0.8 · 3분기 0.9~1.0 U/kg)</p>
+  <div class="g2">
+    <div><label for="pgWt">현재 체중 (kg)</label><input type="number" id="pgWt" min="30" step="0.5" value="65"></div>
+    <div>
+      <label for="pgTri">주수</label>
+      <select id="pgTri">
+        <option value="0.7">1분기 (×0.7)</option>
+        <option value="0.8" selected>2분기 (×0.8)</option>
+        <option value="0.9">3분기 (×0.9)</option>
+        <option value="1.0">3분기 후반 (×1.0)</option>
+      </select>
+    </div>
+  </div>
+  <div class="result mt">
+    <p>예상 TDD</p>
+    <strong id="pgTdd">52 U</strong>
+    <p class="f" id="pgTddF">65 × 0.8 = 52.0</p>
+  </div>
+  <div class="mini mt">
+    <p style="font-weight:600; color:var(--ink); margin-bottom:2px;">임신 목표혈당</p>
+    <p>공복 &lt;95 · 식후 1시간 &lt;140 · 식후 2시간 &lt;120 mg/dL — 교정 목표는 90~100 권장</p>
+  </div>
+  <p class="hint" style="margin:10px 0 0;">
+    아침 인슐린 저항성 최고 → 아침 탄수 제한·아침 ICR 강화 ·
+    금식·홀드 시 케톤 확인(기아성 케톤증 빠름) ·
+    3분기 요구량 급감·정체 시 태반기능 확인 ·
+    분만 직후 요구량 급감 → 즉시 감량 준비
+  </p>
+</div>
+
+<div class="card">
+  <h2>3단계 · 기저인슐린 설정</h2>
+  <p class="hint">기저 총량 = TDD × 기저 비율 · 시간당 = ÷ 24 (0.05U 단위)</p>
+  <div class="slider-row">
+    <label for="pBasalPct">기저 비율</label>
+    <input type="range" id="pBasalPct" min="30" max="60" step="5" value="50">
+    <output id="pBasalPctOut">50%</output>
+  </div>
+  <div class="g2">
+    <div class="mini"><p>기저 총량 (U/일)</p><strong id="pBasalTot">17.5 U</strong></div>
+    <div class="mini" style="background:var(--deep-bg);"><p style="color:var(--deep);">시간당 기저</p><strong id="pBasalHr" style="color:var(--deep);">0.7 U/hr</strong></div>
+  </div>
+  <div class="g2 mt">
+    <div><label for="pCurBasal">현재 기저량 (U/일)</label><input type="number" id="pCurBasal" min="0" step="0.5" placeholder="비율 역산용"></div>
+    <div class="mini"><p>실제 기저 비율</p><strong id="pCurPct">–</strong><p class="n">TDD 대비</p></div>
+  </div>
+  <button class="act mt" id="applyPct" type="button" style="margin-top:10px;">역산 비율을 슬라이더에 적용</button>
+</div>
+
+<div class="card">
+  <h2>4단계 · 볼루스 설정값</h2>
+  <p class="hint">ICR = 500 ÷ TDD · ISF = 1800 ÷ TDD (펌프 TDD 기준 자동 산출)</p>
+  <div class="g2">
+    <div class="mini"><p>탄수계수 ICR</p><strong id="pIcr">14</strong><p class="n" id="pIcrN">1U → 탄수 14g</p></div>
+    <div class="mini"><p>교정계수 ISF</p><strong id="pIsf">51</strong><p class="n" id="pIsfN">1U → 혈당 51↓</p></div>
+  </div>
+  <div class="g2 mt">
+    <div><label for="pTarget">목표 혈당</label><input type="number" id="pTarget" min="70" step="10" value="120"></div>
+    <div class="mini"><p>볼루스 총량 (U/일)</p><strong id="pBolusTot">17.5 U</strong><p class="n">TDD − 기저 총량</p></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>5단계 · 식사 섭취량 → 탄수화물·볼루스</h2>
+  <p class="hint">끼니 배분 비율 반영 · 볼루스는 4단계 ICR 사용</p>
+  <div class="g2" style="margin-bottom:10px;">
+    <div><label for="pRatB">아침 비율</label><input type="number" id="pRatB" min="0" step="1" value="1"></div>
+    <div><label for="pRatL">점심 비율</label><input type="number" id="pRatL" min="0" step="1" value="1"></div>
+    <div><label for="pRatD">저녁 비율</label><input type="number" id="pRatD" min="0" step="1" value="1"></div>
+    <div><label for="pRatS">간식 비율</label><input type="number" id="pRatS" min="0" step="1" value="0"></div>
+  </div>
+  <div class="g2">
+    <div><label for="pKcal">처방 열량</label><select id="pKcal"></select></div>
+    <div>
+      <label for="pMealDiv">끼니</label>
+      <select id="pMealDiv">
+        <option value="b">아침</option>
+        <option value="l" selected>점심</option>
+        <option value="d">저녁</option>
+        <option value="s">간식</option>
+        <option value="all">하루 전체</option>
+      </select>
+    </div>
+  </div>
+  <div class="slider-row mt" style="margin-bottom:0;">
+    <label for="pIntake">섭취율</label>
+    <input type="range" id="pIntake" min="0" max="100" step="5" value="100">
+    <output id="pIntakeOut">100%</output>
+  </div>
+  <div class="g2 mt">
+    <div class="mini"><p>섭취 탄수화물</p><strong id="pCarbEat">80 g</strong><p class="n" id="pCarbBase"></p></div>
+    <div class="mini" style="background:var(--deep-bg);"><p style="color:var(--deep);">필요 볼루스</p><strong id="pMealBolus" style="color:var(--deep);">5.5 U</strong><p class="n" id="pMealBolusN" style="color:var(--deep);"></p></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>6단계 · 간식 볼루스</h2>
+  <p class="hint">간식 탄수 ÷ ICR · 15g 미만은 보통 생략 · 직전 볼루스 후 작용시간 내면 7단계 IOB 차감 고려</p>
+  <div class="g2">
+    <div><label for="pSnackCarb">간식 탄수화물 (g)</label><input type="number" id="pSnackCarb" min="0" step="1" value="20"></div>
+    <div class="result" style="padding:10px 12px;"><p>간식 볼루스</p><strong id="pSnackBolus">1.5 U</strong><p class="f" id="pSnackN"></p></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>7단계 · 활성인슐린 (IOB)·교정</h2>
+  <p class="hint">잔여 IOB ≈ 볼루스량 × (1 − 경과시간 ÷ 작용시간), 선형 근사</p>
+  <div class="g2">
+    <div><label for="pDose">최근 볼루스 (U)</label><input type="number" id="pDose" min="0" step="0.5" value="6"></div>
+    <div><label for="pElapsed">경과 시간 (hr)</label><input type="number" id="pElapsed" min="0" step="0.5" value="1.5"></div>
+  </div>
+  <div class="g2 mt">
+    <div>
+      <label for="pDur">인슐린 작용시간</label>
+      <select id="pDur">
+        <option value="2">2시간</option>
+        <option value="3" selected>3시간</option>
+        <option value="4">4시간</option>
+        <option value="5">5시간</option>
+      </select>
+    </div>
+    <div><label for="pBg">현재 혈당 (선택)</label><input type="number" id="pBg" min="0" step="1" value="250"></div>
+  </div>
+  <div class="g2 mt">
+    <div class="mini"><p>잔여 IOB</p><strong id="pIob">3.0 U</strong></div>
+    <div class="result" style="padding:10px 12px;"><p>IOB 차감 교정용량</p><strong id="pCorr">0 U</strong><p class="f" id="pCorrF"></p></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>참고 · 처방열량별 영양소 구성</h2>
+  <p class="hint">일일 기준 (g)</p>
+  <table class="carb">
+    <thead><tr><th>열량 (kcal)</th><th>탄수화물</th><th>단백질</th><th>지방</th></tr></thead>
+    <tbody id="carbBody"></tbody>
+  </table>
+</div>
+
+</div>
+
+<footer>
+  <p class="src">출처 : 의정부을지대학교병원 내분비내과 전담간호사 김지혜</p>
+  <p>본 계산기는 임상 참고용 보조 도구입니다. 실제 처방 및 용량 변경은 기관 프로토콜과 담당 전문의 확인을 따르십시오.</p>
+  <p style="margin-top:8px;">© 2026 김지혜. All rights reserved.<br>
+  본 자료의 저작권은 제작자에게 있으며, 저작자의 사전 동의 없는 무단 복제·수정·배포 및 상업적 이용을 금합니다.</p>
+</footer>
+
+</div>
+
+<script>
+function showTab(n) {
+  [1, 2, 3].forEach(function (i) {
+    document.getElementById('tab' + i).style.display = i === n ? 'block' : 'none';
+    document.getElementById('tb' + i).className = i === n ? 'on' : '';
+  });
+}
+
+var rowsEl = document.getElementById('rows');
+function holdOptions(dur) {
+  if (dur === 60) return '<option value="0">0분</option><option value="15">15분</option><option value="30">30분</option><option value="45">45분</option><option value="60">전체</option>';
+  return '<option value="0">0분</option><option value="30">30분</option><option value="60">60분</option><option value="90">90분</option><option value="120">전체</option>';
+}
+var CTRL_HTML =
+  '<input type="number" min="0" step="1" placeholder="–" class="bstIn" aria-label="혈당">' +
+  '<input type="number" min="0" step="1" value="15" class="riIn" aria-label="RI 단위">' +
+  '<input type="number" min="0" step="5" value="80" class="rateIn" aria-label="주입 속도">' +
+  '<select class="holdIn" aria-label="홀드">' + holdOptions(120) + '</select>' +
+  '<input type="checkbox" class="hypoIn" aria-label="저혈당">';
+function createRow(label, removable) {
+  var row = document.createElement('div');
+  if (!removable) {
+    row.className = 'slot';
+    row.innerHTML = '<span class="t">' + label + '</span>' + CTRL_HTML + '<span></span>';
+  } else {
+    row.className = 'slot-add';
+    row.innerHTML =
+      '<div class="meta">' +
+        '<input type="text" class="tIn" value="' + label + '" aria-label="시간대">' +
+        '<select class="durIn" aria-label="구간 길이"><option value="120" selected>2시간</option><option value="60">1시간</option></select>' +
+        '<button type="button" class="del" aria-label="행 삭제">&times;</button>' +
+      '</div>' +
+      '<div class="slot sub">' + CTRL_HTML + '</div>';
+    row.querySelector('.del').addEventListener('click', function () {
+      row.remove();
+      updateGik();
+    });
+    row.querySelector('.durIn').addEventListener('change', function () {
+      var dur = Number(this.value);
+      var hold = row.querySelector('.holdIn');
+      var prev = Number(hold.value);
+      hold.innerHTML = holdOptions(dur);
+      hold.value = String(Math.min(prev, dur));
+      updateGik();
+    });
+  }
+  rowsEl.appendChild(row);
+  return row;
+}
+for (var i = 0; i < 12; i++) {
+  var t0 = String(i * 2).padStart(2, '0');
+  var t1 = String((i * 2 + 2) % 24).padStart(2, '0');
+  createRow(t0 + '–' + t1, false);
+}
+function allRows() { return Array.prototype.slice.call(rowsEl.children); }
+
+function q(row, cls) { return row.querySelector(cls); }
+function fmt(n, d) { return Number(n.toFixed(d)).toLocaleString(); }
+function halfU(n) { return Math.round(n * 2) / 2; }
+function $(id) { return document.getElementById(id); }
+
+function updateGik() {
+  var v = Number($('vol').value);
+  var iv = 0, holdMin = 0, hypo = 0, bstSum = 0, bstN = 0;
+  allRows().forEach(function (row) {
+    var bstEl = q(row, '.bstIn');
+    var bst = bstEl.value === '' ? null : Number(bstEl.value);
+    var ri = Number(q(row, '.riIn').value) || 0;
+    var rate = Number(q(row, '.rateIn').value) || 0;
+    var hypoEl = q(row, '.hypoIn');
+    if (bst !== null && bst > 0 && bst < 70 && !hypoEl.dataset.manual) hypoEl.checked = true;
+    var isHypo = hypoEl.checked;
+    var durEl = q(row, '.durIn');
+    var dur = durEl ? Number(durEl.value) : 120;
+    var hold = Math.min(Number(q(row, '.holdIn').value), dur);
+    var hrs = (dur - hold) / 60;
+    iv += (ri / v) * rate * hrs;
+    holdMin += hold;
+    if (isHypo) hypo++;
+    if (bst !== null && bst > 0) { bstSum += bst; bstN++; }
+    bstEl.className = 'bstIn' + (bst !== null && bst > 0 && bst < 70 ? ' low' : '');
+    var baseCls = row.classList.contains('slot-add') ? 'slot-add' : 'slot';
+    row.className = baseCls + (isHypo ? ' hypo' : (hold === dur ? ' held' : ''));
+  });
+
+  var sB = Number($('scBasal').value) || 0;
+  var sQ = Number($('scBolus').value) || 0;
+  var sc = sB + sQ;
+  var c = Number($('conv').value);
+  var bPct = Number($('ratio').value);
+
+  $('ivTotal').textContent = fmt(iv, 1) + ' U';
+  $('avgBst').textContent = bstN ? Math.round(bstSum / bstN) : '–';
+  $('holdSum').textContent = holdMin >= 60 ? fmt(holdMin / 60, 1) + '시간' : holdMin + '분';
+  $('hypoCnt').textContent = hypo + '회';
+  $('hypoWarn').style.display = hypo > 0 ? 'block' : 'none';
+  $('combTdd').textContent = fmt(iv + sc, 1) + ' U';
+  $('convOut').textContent = c + '%';
+  $('ratioOut').textContent = bPct + ':' + (100 - bPct);
+
+  var newTdd = iv * c / 100 + sc;
+  $('newTdd').textContent = fmt(newTdd, 1) + ' U';
+  $('tddFormula').textContent = sc > 0 ? '(IV ' + fmt(iv, 1) + '×' + c + '% + SC ' + fmt(sc, 0) + ')' : '';
+
+  var basal = Math.round(newTdd * bPct / 100);
+  var bolus = Math.round(newTdd * (100 - bPct) / 100);
+  $('basalLbl').textContent = 'Basal ' + bPct + '%';
+  $('bolusLbl').textContent = 'Bolus ' + (100 - bPct) + '%';
+  $('basal').textContent = basal + ' U';
+  $('bolus').textContent = bolus + ' U';
+  $('perMeal').textContent = '매 식전 약 ' + fmt(Math.round(bolus / 3 * 10) / 10, 1) + ' U';
+}
+
+function calcRule() {
+  var t = Number($('tdd').value) || 1;
+  var r = Number($('rule').value);
+  var isf = Math.round(r / t);
+  var icr = Math.round(500 / t);
+  $('isfOut').textContent = isf;
+  $('icrOut').textContent = icr;
+  $('isfNote').textContent = '1U → 혈당 ' + isf + '↓';
+  $('icrNote').textContent = '1U → 탄수 ' + icr + 'g';
+  return { isf: isf, icr: icr };
+}
+
+function updateMdi() {
+  calcRule();
+  var bg = Number($('bg').value) || 0;
+  var target = Number($('target').value) || 120;
+  var isf = Number($('isfIn').value) || 1;
+  var raw = (bg - target) / isf;
+  var corr = raw > 0 ? halfU(raw) : 0;
+  $('corrOut').textContent = corr + ' U';
+  $('corrFormula').textContent = '(' + bg + ' − ' + target + ') ÷ ' + isf + ' = ' + Number(raw.toFixed(1));
+  $('lowWarn').style.display = raw <= 0 ? 'block' : 'none';
+
+  var carb = Number($('carb').value) || 0;
+  var icr = Number($('icrIn').value) || 1;
+  var meal = halfU(carb / icr);
+  $('mealOut').textContent = meal + ' U';
+  $('totalOut').textContent = halfU(meal + corr) + ' U';
+}
+
+rowsEl.addEventListener('change', function (e) {
+  if (e.target.classList.contains('hypoIn')) e.target.dataset.manual = '1';
+});
+$('copyDown').addEventListener('click', function () {
+  var rows = allRows();
+  if (!rows.length) return;
+  var ri = q(rows[0], '.riIn').value;
+  var rate = q(rows[0], '.rateIn').value;
+  rows.forEach(function (row, i) {
+    if (i === 0) return;
+    q(row, '.riIn').value = ri;
+    q(row, '.rateIn').value = rate;
+  });
+  updateGik();
+});
+$('addRow').addEventListener('click', function () {
+  createRow('추가', true);
+  updateGik();
+});
+$('syncIsf').addEventListener('click', function () {
+  var r = calcRule();
+  $('isfIn').value = r.isf;
+  $('icrIn').value = r.icr;
+  updateMdi();
+});
+rowsEl.addEventListener('input', updateGik);
+['vol', 'conv', 'ratio', 'scBasal', 'scBolus'].forEach(function (id) { $(id).addEventListener('input', updateGik); });
+['tdd', 'rule', 'bg', 'target', 'isfIn', 'carb', 'icrIn'].forEach(function (id) { $(id).addEventListener('input', updateMdi); });
+function updatePump() {
+  var avg = Number($('pAvg').value) || 0;
+  var wt = Number($('pWt').value) || 0;
+  var tdd = (avg * 0.75 + wt * 0.5) * 0.5;
+  $('pTdd').textContent = Number(tdd.toFixed(1)) + ' U';
+  $('pTddF').textContent = '(' + avg + '×0.75 + ' + wt + '×0.5) × 0.5 = ' + Number(tdd.toFixed(1));
+
+  var pct = Number($('pBasalPct').value);
+  $('pBasalPctOut').textContent = pct + '%';
+  var basalTot = tdd * pct / 100;
+  var basalHr = Math.round(basalTot / 24 * 20) / 20;
+  $('pBasalTot').textContent = Number(basalTot.toFixed(1)) + ' U';
+  $('pBasalHr').textContent = basalHr.toFixed(2) + ' U/hr';
+  $('pBolusTot').textContent = Number((tdd - basalTot).toFixed(1)) + ' U';
+
+  var icr = tdd > 0 ? Math.round(500 / tdd) : 0;
+  var isf = tdd > 0 ? Math.round(1800 / tdd) : 0;
+  $('pIcr').textContent = icr;
+  $('pIsf').textContent = isf;
+  $('pIcrN').textContent = '1U → 탄수 ' + icr + 'g';
+  $('pIsfN').textContent = '1U → 혈당 ' + isf + '↓';
+
+  var dose = Number($('pDose').value) || 0;
+  var el = Number($('pElapsed').value) || 0;
+  var durH = Number($('pDur').value);
+  var iob = Math.max(0, dose * (1 - el / durH));
+  iob = Math.round(iob * 10) / 10;
+  $('pIob').textContent = iob + ' U';
+
+  var bg = Number($('pBg').value) || 0;
+  var target = Number($('pTarget').value) || 120;
+  if (bg > 0 && isf > 0) {
+    var rawCorr = (bg - target) / isf;
+    var corr = Math.max(0, halfU(rawCorr - iob));
+    $('pCorr').textContent = corr + ' U';
+    $('pCorrF').textContent = '(' + bg + '−' + target + ')÷' + isf + ' − IOB ' + iob + ' = ' + Number((rawCorr - iob).toFixed(1));
+  } else {
+    $('pCorr').textContent = '–';
+    $('pCorrF').textContent = '';
+  }
+
+  var cur = Number($('pCurBasal').value) || 0;
+  $('pCurPct').textContent = (cur > 0 && tdd > 0) ? Number((cur / tdd * 100).toFixed(1)) + '%' : '–';
+
+  var pgW = Number($('pgWt').value) || 0;
+  var pgC = Number($('pgTri').value);
+  var pgT = pgW * pgC;
+  $('pgTdd').textContent = Number(pgT.toFixed(1)) + ' U';
+  $('pgTddF').textContent = pgW + ' × ' + pgC + ' = ' + Number(pgT.toFixed(1));
+
+  var kcal = Number($('pKcal').value);
+  var row = null;
+  for (var i = 0; i < CARB.length; i++) { if (CARB[i][0] === kcal) { row = CARB[i]; break; } }
+  var ht = Number($('pHt').value) || 0;
+  var sexF = Number($('pSex').value);
+  var act = Number($('pAct').value);
+  var ibw = Math.pow(ht / 100, 2) * sexF;
+  var needKcal = ibw * act;
+  $('pIbw').textContent = Number(ibw.toFixed(1)) + ' kg';
+  $('pKcalCalc').textContent = Math.round(needKcal).toLocaleString() + ' kcal';
+  $('pKcalF').textContent = '(' + (ht / 100) + 'm)² × ' + sexF + ' × ' + act;
+
+  var snack = Number($('pSnackCarb').value) || 0;
+  if (icr > 0 && snack > 0) {
+    var sb = halfU(snack / icr);
+    $('pSnackBolus').textContent = (snack < 15 ? '생략 가능 (' + sb + ' U)' : sb + ' U');
+    $('pSnackN').textContent = snack + 'g ÷ ICR ' + icr;
+  } else {
+    $('pSnackBolus').textContent = '–';
+    $('pSnackN').textContent = '';
+  }
+
+  if (row) {
+    var rB = Number($('pRatB').value) || 0;
+    var rL = Number($('pRatL').value) || 0;
+    var rD = Number($('pRatD').value) || 0;
+    var rS = Number($('pRatS').value) || 0;
+    var rSum = rB + rL + rD + rS;
+    var meal = $('pMealDiv').value;
+    var intake = Number($('pIntake').value);
+    $('pIntakeOut').textContent = intake + '%';
+    var share = 1, name = '하루';
+    if (meal !== 'all' && rSum > 0) {
+      share = (meal === 'b' ? rB : meal === 'l' ? rL : meal === 'd' ? rD : rS) / rSum;
+      name = meal === 'b' ? '아침' : meal === 'l' ? '점심' : meal === 'd' ? '저녁' : '간식';
+    }
+    var ratioTxt = rB + ':' + rL + ':' + rD + (rS > 0 ? ':' + rS : '');
+    var baseCarb = row[1] * share;
+    var eat = baseCarb * intake / 100;
+    $('pCarbEat').textContent = Math.round(eat) + ' g';
+    $('pCarbBase').textContent = name + ' ' + Math.round(baseCarb) + 'g' +
+      (meal !== 'all' ? ' (' + ratioTxt + ')' : '') + ' × ' + intake + '%';
+    if (icr > 0) {
+      var mb = halfU(eat / icr);
+      $('pMealBolus').textContent = mb + ' U';
+      $('pMealBolusN').textContent = Math.round(eat) + 'g ÷ ICR ' + icr;
+    } else {
+      $('pMealBolus').textContent = '–';
+      $('pMealBolusN').textContent = '';
+    }
+  }
+}
+
+var CARB = [
+  [1200,155,60,39],[1300,178,62,39],[1400,178,70,41],[1500,204,74,46],
+  [1600,204,82,48],[1700,227,84,48],[1800,240,92,55],[1900,263,94,55],
+  [2000,275,94,55],[2100,275,102,65],[2200,298,104,65],[2300,298,112,70],
+  [2400,324,116,70],[2500,347,118,70],[2600,347,126,80],[2700,362,128,85],
+  [2800,385,130,85]
+];
+(function buildCarbTable() {
+  var rows = '';
+  CARB.forEach(function (r) {
+    var mark = (r[0] === 1800 || r[0] === 2000) ? ' class="mark"' : '';
+    rows += '<tr' + mark + '><td>' + r[0].toLocaleString() + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td><td>' + r[3] + '</td></tr>';
+  });
+  $('carbBody').innerHTML = rows;
+  var opts = '';
+  CARB.forEach(function (r) {
+    opts += '<option value="' + r[0] + '"' + (r[0] === 1800 ? ' selected' : '') + '>' + r[0].toLocaleString() + ' kcal</option>';
+  });
+  $('pKcal').innerHTML = opts;
+})();
+
+['pAvg', 'pWt', 'pBasalPct', 'pTarget', 'pDose', 'pElapsed', 'pDur', 'pBg', 'pCurBasal', 'pKcal', 'pMealDiv', 'pIntake', 'pRatB', 'pRatL', 'pRatD', 'pRatS', 'pHt', 'pSex', 'pAct', 'pSnackCarb', 'pgWt', 'pgTri'].forEach(function (id) { $(id).addEventListener('input', updatePump); });
+$('applyKcal').addEventListener('click', function () {
+  var ht = Number($('pHt').value) || 0;
+  var sexF = Number($('pSex').value);
+  var act = Number($('pAct').value);
+  var kcal = Math.round(Math.pow(ht / 100, 2) * sexF * act / 100) * 100;
+  kcal = Math.min(2800, Math.max(1200, kcal));
+  $('pKcal').value = String(kcal);
+  updatePump();
+});
+$('applyPct').addEventListener('click', function () {
+  var cur = Number($('pCurBasal').value) || 0;
+  var avg = Number($('pAvg').value) || 0;
+  var wt = Number($('pWt').value) || 0;
+  var tdd = (avg * 0.75 + wt * 0.5) * 0.5;
+  if (cur > 0 && tdd > 0) {
+    var pct = Math.round(cur / tdd * 100 / 5) * 5;
+    $('pBasalPct').value = Math.min(60, Math.max(30, pct));
+    updatePump();
+  }
+});
+updateGik();
+updateMdi();
+updatePump();
+</script>
+</body>
+</html>
